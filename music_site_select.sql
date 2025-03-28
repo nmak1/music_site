@@ -1,4 +1,4 @@
--- Удаляем старые таблицы (если они существуют)
+-- 1. Создание таблиц
 DROP TABLE IF EXISTS TrackCompilation;
 DROP TABLE IF EXISTS GenreArtist;
 DROP TABLE IF EXISTS ArtistAlbum;
@@ -8,119 +8,202 @@ DROP TABLE IF EXISTS Albums;
 DROP TABLE IF EXISTS Artists;
 DROP TABLE IF EXISTS Genres;
 
--- Создаем таблицы заново с правильными ограничениями
-
 -- Жанры
-CREATE TABLE IF NOT EXISTS Genres (
+CREATE TABLE Genres (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE
 );
 
--- Исполнители (УБИРАЕМ genre_id, так как связь многие-ко-многим через GenreArtist)
-CREATE TABLE IF NOT EXISTS Artists (
+-- Исполнители
+CREATE TABLE Artists (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE
 );
 
 -- Альбомы
-CREATE TABLE IF NOT EXISTS Albums (
+CREATE TABLE Albums (
     id SERIAL PRIMARY KEY,
     title VARCHAR(100) NOT NULL,
     year INT NOT NULL CHECK (year >= 1900),
-    artist_id INT NOT NULL REFERENCES Artists(id) ON DELETE CASCADE,
-    UNIQUE (title, artist_id, year)
+    UNIQUE (title, year)
 );
 
 -- Треки
-CREATE TABLE IF NOT EXISTS Tracks (
+CREATE TABLE Tracks (
     id SERIAL PRIMARY KEY,
     title VARCHAR(100) NOT NULL,
-    duration INT NOT NULL CHECK (duration > 0),
+    duration INT NOT NULL CHECK (duration > 0), -- в секундах
     album_id INT NOT NULL REFERENCES Albums(id) ON DELETE CASCADE
 );
 
 -- Сборники
-CREATE TABLE IF NOT EXISTS Compilations (
+CREATE TABLE Compilations (
     id SERIAL PRIMARY KEY,
     title VARCHAR(100) NOT NULL,
     year INT NOT NULL CHECK (year >= 1900)
 );
 
--- Связь многие-ко-многим между жанрами и исполнителями
-CREATE TABLE IF NOT EXISTS GenreArtist (
+-- Связь жанры-исполнители
+CREATE TABLE GenreArtist (
     genre_id INT NOT NULL REFERENCES Genres(id) ON DELETE CASCADE,
     artist_id INT NOT NULL REFERENCES Artists(id) ON DELETE CASCADE,
     PRIMARY KEY (genre_id, artist_id)
 );
 
--- Связь многие-ко-многим между треками и сборниками
-CREATE TABLE IF NOT EXISTS TrackCompilation (
+-- Связь исполнители-альбомы
+CREATE TABLE ArtistAlbum (
+    artist_id INT NOT NULL REFERENCES Artists(id) ON DELETE CASCADE,
+    album_id INT NOT NULL REFERENCES Albums(id) ON DELETE CASCADE,
+    PRIMARY KEY (artist_id, album_id)
+);
+
+-- Связь треки-сборники
+CREATE TABLE TrackCompilation (
     track_id INT NOT NULL REFERENCES Tracks(id) ON DELETE CASCADE,
     compilation_id INT NOT NULL REFERENCES Compilations(id) ON DELETE CASCADE,
     PRIMARY KEY (track_id, compilation_id)
 );
 
-
--- Очищаем таблицы
-TRUNCATE TABLE TrackCompilation, GenreArtist, Tracks, Compilations, Albums, Artists, Genres RESTART IDENTITY CASCADE;
-
--- Заполняем жанры
+-- 2. Заполнение данными
+-- Жанры
 INSERT INTO Genres (name) VALUES 
-('Рок'), ('Поп'), ('Хип-хоп'), ('Джаз'), ('Электроника');
+('Рок'), ('Поп'), ('Хип-хоп'), ('Джаз'), ('Электроника'),
+('Классика'), ('Метал'), ('Рэп'), ('Фолк'), ('Диско');
 
--- Заполняем исполнителей (БЕЗ genre_id)
-INSERT INTO Artists (name) VALUES 
-('Queen'), ('The Weeknd'), ('Eminem'), ('Louis Armstrong'), ('Daft Punk');
+-- Исполнители
+INSERT INTO Artists (name) VALUES
+('Queen'), ('The Beatles'), ('Eminem'), 
+('Louis Armstrong'), ('Daft Punk'),
+('Muse'), ('Lady Gaga'), ('Hans Zimmer'),
+('Imagine Dragons'), ('Rammstein');
 
--- Заполняем альбомы
-INSERT INTO Albums (title, year, artist_id) VALUES
-('A Night at the Opera', 1975, 1),
-('After Hours', 2020, 2),
-('The Marshall Mathers LP', 2000, 3),
-('What a Wonderful World', 1967, 4),
-('Random Access Memories', 2013, 5);
+-- Альбомы
+INSERT INTO Albums (title, year) VALUES
+('A Night at the Opera', 1975),
+('Abbey Road', 1969),
+('The Marshall Mathers LP', 2000),
+('What a Wonderful World', 1967),
+('Random Access Memories', 2013),
+('Origin of Symmetry', 2001),
+('The Fame', 2008),
+('Inception OST', 2010),
+('Evolve', 2017),
+('Mutter', 2001);
 
--- Заполняем треки
+-- Связи исполнителей с альбомами в ваших данных:
+INSERT INTO ArtistAlbum (artist_id, album_id) VALUES
+(1, 1), -- Queen
+(2, 2), -- The Beatles
+(3, 3), -- Eminem
+(4, 4), -- Louis Armstrong
+(5, 5), -- Daft Punk
+(6, 6), -- Muse
+(7, 7), -- Lady Gaga
+(8, 8), -- Hans Zimmer
+(9, 9), -- Imagine Dragons
+(10, 10), -- Rammstein
+(1, 2), -- Queen (второй альбом)
+(7, 5); -- Lady Gaga (второй альбом)
+
+-- Треки
 INSERT INTO Tracks (title, duration, album_id) VALUES
+-- Альбом 1
 ('Bohemian Rhapsody', 354, 1),
 ('Love of My Life', 213, 1),
-('Blinding Lights', 200, 2),
-('Save Your Tears', 215, 2),
+('You''re My Best Friend', 170, 1),
+-- Альбом 2
+('Come Together', 259, 2),
+('Something', 182, 2),
+('Here Comes the Sun', 185, 2),
+-- Альбом 3
 ('The Real Slim Shady', 284, 3),
 ('Stan', 404, 3),
+('The Way I Am', 290, 3),
+-- Альбом 4
 ('What a Wonderful World', 139, 4),
-('Get Lucky', 369, 5);
+('Hello, Dolly!', 150, 4),
+-- Альбом 5
+('Get Lucky', 369, 5),
+('Lose Yourself to Dance', 353, 5),
+-- Альбом 6
+('New Born', 360, 6),
+('Plug In Baby', 220, 6),
+-- Альбом 7
+('Just Dance', 240, 7),
+('Poker Face', 237, 7),
+-- Альбом 8
+('Time', 287, 8),
+('Dream Is Collapsing', 145, 8),
+-- Альбом 9
+('Believer', 204, 9),
+('Thunder', 187, 9),
+-- Альбом 10
+('Sonne', 272, 10),
+('Ich will', 217, 10);
 
--- Заполняем сборники
+-- Сборники
 INSERT INTO Compilations (title, year) VALUES
 ('Best Rock Ballads', 2018),
-('Pop Hits 2020', 2020),
+('Pop Hits Collection', 2020),
 ('Hip-Hop Classics', 2019),
 ('Jazz Forever', 2021),
-('Electronic Dance Music', 2022);
+('Electronic Dance Anthems', 2022),
+('Film Soundtracks', 2020),
+('Metal Essentials', 2019),
+('Greatest Hits of 2000s', 2021),
+('Legendary Collaborations', 2022),
+('International Superhits', 2023);
 
--- Связываем треки со сборниками
+-- Связи треков со сборниками
 INSERT INTO TrackCompilation (track_id, compilation_id) VALUES
-(1, 1), (2, 1), (3, 2), (4, 2), (5, 3), (6, 3), (7, 4), (8, 5);
+(1, 1), (2, 1), (4, 1),   -- Rock Ballads
+(6, 2), (16, 2), (17, 2),  -- Pop Hits
+(7, 3), (8, 3),            -- Hip-Hop
+(9, 4), (10, 4),           -- Jazz
+(11, 5), (12, 5),          -- Electronic
+(19, 6), (20, 6),          -- Film
+(21, 7), (22, 7),          -- Metal
+(3, 8), (5, 8), (13, 8),   -- 2000s
+(1, 9), (4, 9), (11, 9),   -- Collaborations
+(1, 10), (4, 10), (7, 10), (9, 10), (11, 10); -- International
 
--- Связываем жанры с исполнителями (теперь через промежуточную таблицу)
+-- Связи жанров с исполнителями
 INSERT INTO GenreArtist (genre_id, artist_id) VALUES
-(1, 1),  -- Queen - Рок
-(2, 2),  -- The Weeknd - Поп
-(3, 3),  -- Eminem - Хип-хоп
-(4, 4),  -- Louis Armstrong - Джаз
-(5, 5),  -- Daft Punk - Электроника
-(2, 1),  -- Queen также Поп
-(5, 2);  -- The Weeknd также Электроника
+(1, 1),   -- Рок - Queen
+(1, 2),   -- Рок - The Beatles
+(2, 2),   -- Поп - The Beatles
+(2, 7),   -- Поп - Lady Gaga
+(3, 3),   -- Хип-хоп - Eminem
+(4, 4),   -- Джаз - Louis Armstrong
+(5, 5),   -- Электроника - Daft Punk
+(1, 6),   -- Рок - Muse
+(2, 9),   -- Поп - Imagine Dragons
+(7, 10);  -- Метал - Rammstein
 
+-- Проверка количества записей в каждой таблице
 SELECT 'Genres' as table, COUNT(*) FROM Genres
-UNION ALL SELECT 'Artists', COUNT(*) FROM Artists
-UNION ALL SELECT 'Albums', COUNT(*) FROM Albums
-UNION ALL SELECT 'Tracks', COUNT(*) FROM Tracks
-UNION ALL SELECT 'Compilations', COUNT(*) FROM Compilations
-UNION ALL SELECT 'GenreArtist', COUNT(*) FROM GenreArtist
-UNION ALL SELECT 'ArtistAlbum', COUNT(*) FROM ArtistAlbum
-UNION ALL SELECT 'TrackCompilation', COUNT(*) FROM TrackCompilation;
+UNION SELECT 'Artists', COUNT(*) FROM Artists
+UNION SELECT 'Albums', COUNT(*) FROM Albums
+UNION SELECT 'Tracks', COUNT(*) FROM Tracks
+UNION SELECT 'Compilations', COUNT(*) FROM Compilations
+UNION SELECT 'GenreArtist', COUNT(*) FROM GenreArtist
+UNION SELECT 'ArtistAlbum', COUNT(*) FROM ArtistAlbum
+UNION SELECT 'TrackCompilation', COUNT(*) FROM TrackCompilation;
+
+-- Проверка связей многие-ко-многим
+SELECT a.name AS artist, COUNT(DISTINCT al.id) AS albums_count
+FROM Artists a
+LEFT JOIN ArtistAlbum aa ON a.id = aa.artist_id
+LEFT JOIN Albums al ON aa.album_id = al.id
+GROUP BY a.id, a.name
+ORDER BY albums_count DESC;
+
+SELECT g.name AS genre, COUNT(DISTINCT a.name) AS artists_count
+FROM Genres g
+JOIN GenreArtist ga ON g.id = ga.genre_id
+JOIN Artists a ON ga.artist_id = a.id
+GROUP BY g.id, g.name
+ORDER BY artists_count DESC;
 
 SELECT title, duration 
 FROM Tracks 
@@ -182,8 +265,8 @@ WHERE ar.name = 'Queen';
 
 SELECT DISTINCT a.title AS album_title
 FROM Albums a
-JOIN Artists ar ON a.artist_id = ar.id
-JOIN GenreArtist ga ON ar.id = ga.artist_id
+JOIN ArtistAlbum aa ON a.id = aa.album_id
+JOIN GenreArtist ga ON aa.artist_id = ga.artist_id
 GROUP BY a.id, a.title
 HAVING COUNT(DISTINCT ga.genre_id) > 1;
 
@@ -194,18 +277,18 @@ WHERE tc.track_id IS NULL;
 
 SELECT ar.name AS artist_name
 FROM Artists ar
-JOIN Albums a ON ar.id = a.artist_id
-JOIN Tracks t ON a.id = t.album_id
+JOIN ArtistAlbum aa ON ar.id = aa.artist_id
+JOIN Tracks t ON aa.album_id = t.album_id
 WHERE t.duration = (SELECT MIN(duration) FROM Tracks);
 
 SELECT a.title AS album_title, COUNT(t.id) AS track_count
 FROM Albums a
-JOIN Tracks t ON a.id = t.album_id
+LEFT JOIN Tracks t ON a.id = t.album_id
 GROUP BY a.id, a.title
 HAVING COUNT(t.id) = (
     SELECT COUNT(t2.id)
     FROM Albums a2
-    JOIN Tracks t2 ON a2.id = t2.album_id
+    LEFT JOIN Tracks t2 ON a2.id = t2.album_id
     GROUP BY a2.id
     ORDER BY COUNT(t2.id)
     LIMIT 1

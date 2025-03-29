@@ -180,6 +180,24 @@ INSERT INTO GenreArtist (genre_id, artist_id) VALUES
 (2, 9),   -- Поп - Imagine Dragons
 (7, 10);  -- Метал - Rammstein
 
+INSERT INTO Tracks (title, duration, album_id) VALUES
+('my own', 180, 1),
+('own my', 180, 1),
+('my', 180, 1),
+('oh my god', 180, 1),
+('myself', 180, 1),
+('by myself', 180, 1),
+('bemy self', 180, 1),
+('myself by', 180, 1),
+('by myself by', 180, 1),
+('beemy', 180, 1),
+('premyne', 180, 1),
+('мой мир', 180, 1),
+('в моем сердце', 180, 1),
+('мой', 180, 1),
+('самомойка', 180, 1),
+('помой', 180, 1);
+
 -- Проверка количества записей в каждой таблице
 SELECT 'Genres' as table, COUNT(*) FROM Genres
 UNION SELECT 'Artists', COUNT(*) FROM Artists
@@ -224,7 +242,8 @@ WHERE name NOT LIKE '% %';
 
 SELECT title 
 FROM Tracks 
-WHERE LOWER(title) LIKE '%мой%' OR LOWER(title) LIKE '%my%';
+WHERE 
+    title ~* '\m(my|мой)\M';
 
 SELECT g.name AS genre, COUNT(ga.artist_id) AS artist_count
 FROM Genres g
@@ -266,8 +285,9 @@ WHERE ar.name = 'Queen';
 SELECT DISTINCT a.title AS album_title
 FROM Albums a
 JOIN ArtistAlbum aa ON a.id = aa.album_id
-JOIN GenreArtist ga ON aa.artist_id = ga.artist_id
-GROUP BY a.id, a.title
+JOIN Artists ar ON aa.artist_id = ar.id
+JOIN GenreArtist ga ON ar.id = ga.artist_id
+GROUP BY a.id, a.title, aa.artist_id
 HAVING COUNT(DISTINCT ga.genre_id) > 1;
 
 SELECT t.title AS track_title
@@ -293,3 +313,4 @@ HAVING COUNT(t.id) = (
     ORDER BY COUNT(t2.id)
     LIMIT 1
 );
+
